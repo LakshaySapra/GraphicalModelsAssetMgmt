@@ -175,10 +175,16 @@ class GNNDataset(Dataset):
         mask = (np.isnan(cur_hist_ret_df).any(axis=(1,2))) | (np.isnan(cur_weekly_ret_df).any(axis=1))
         mask = ~mask
 
+<<<<<<< HEAD
         # print(mask.shape)
 
         return torch.Tensor(sector_edge_lst).to(self.device),\
                torch.Tensor(c_edge_lst).to(self.device),s_edge_lst,\
+=======
+        return torch.Tensor(sector_edge_lst.T).to(self.device),\
+               torch.Tensor(c_edge_lst.T).to(self.device),\
+               torch.Tensor(s_edge_lst).to(self.device),\
+>>>>>>> f7ab967 (dataset)
                torch.Tensor(cur_hist_ret_df).to(self.device),\
                torch.Tensor(cur_weekly_ret_df).to(self.device),\
                torch.Tensor(mask).to(self.device)
