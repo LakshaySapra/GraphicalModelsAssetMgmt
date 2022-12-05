@@ -104,7 +104,7 @@ class GNNDataset(Dataset):
         self.hist_ret_df = pd.read_pickle(data_path+'hist_ret_df.pkl.gz')
         self.weekly_ret_df = pd.read_pickle(data_path+'weekly_ret_df.pkl')
         self.sector_df = pd.read_pickle(data_path+'sector_df.pkl')
-        self.all_sectors = self.sector_df['gind'].dropna().astype(int).unique()
+        self.all_sectors = self.sector_df['gsector'].dropna().astype(int).unique()
         self.supchain_df = pd.read_pickle('data/supchain_df.pkl')
         self.date_lst = list(self.weekly_ret_df.loc['2012-01-01':'2022-01-01'].index.unique())
         concat_lst = []
