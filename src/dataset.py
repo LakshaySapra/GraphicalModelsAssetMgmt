@@ -95,8 +95,9 @@ def get_weekly_ret_df(weekly_ret_df,date,gvkey_to_idx_mapper,permno_to_gvkey_map
     return cur_df.values
 
 class GNNDataset(Dataset):
-    def __init__(self, data_path='../data/',device='cpu'):
+    def __init__(self, data_path='../data/',device='cpu',T=52):
         super().__init__()
+        self.T = T
         self.universe = pd.read_pickle(data_path+'universe.pkl')
         self.universe.index = pd.to_datetime(self.universe.index)
         self.permno_universe = pd.read_pickle(data_path+'permno_universe.pkl')
@@ -117,9 +118,23 @@ class GNNDataset(Dataset):
         self.device=device
     
     def __len__(self):
-        return len(self.date_lst)-1
+        return len(self.date_lst)-1-self.T
 
-    def __getitem__(self,idx):
+    # def preprocess_ret_df(self):
+    #     self.hist_ret_df_lst, self.weekly_ret_df_lst = [],[]
+    #     for idx in range(len(self.date_lst)-1):
+    #         cur_date = self.date_lst[idx]
+    #         next_date = self.date_lst[idx+1]
+    #         cur_universe = get_gvkey_universe(self.universe,cur_date)
+    #         cur_permno_universe = get_permno_universe(self.permno_universe,cur_date)
+    #         cur_hist_ret_df = get_hist_ret_df(self.weekly_hist_ret_df,cur_date,get_permnogvkey_toidx_mapper,get_mapper,self.mapper_df,cur_universe,cur_permno_universe)
+    #         cur_weekly_ret_df = get_weekly_ret_df(self.weekly_ret_df,next_date,get_permnogvkey_toidx_mapper,get_mapper,self.mapper_df,cur_universe,cur_permno_universe)
+
+    #         self.hist_ret_df_lst.append(cur_hist_ret_df)
+    #         self.weekly_ret_df_lst.append(cur_weekly_ret_df)
+
+
+    def __getitem__(self,idx,T=52):
         cur_date = self.date_lst[idx]
         next_date = self.date_lst[idx+1]
         cur_universe = get_gvkey_universe(self.universe,cur_date)
@@ -130,13 +145,37 @@ class GNNDataset(Dataset):
         # Consumer and supplier edges
         c_edge_lst, s_edge_lst = get_supply_chain_edges(self.supchain_df,cur_date,get_permnogvkey_toidx_mapper,self.mapper_df,cur_universe)
 
-        # Individual stock features
-        cur_hist_ret_df = get_hist_ret_df(self.weekly_hist_ret_df,cur_date,get_permnogvkey_toidx_mapper,get_mapper,self.mapper_df,cur_universe,cur_permno_universe)
-        # Labels
-        cur_weekly_ret_df = get_weekly_ret_df(self.weekly_ret_df,next_date,get_permnogvkey_toidx_mapper,get_mapper,self.mapper_df,cur_universe,cur_permno_universe)
+        def gvkey_to_idx(mapper_df,date,gvkey):
+            return get_permnogvkey_toidx_mapper(mapper_df,cur_date,gvkey=gvkey)
 
-        mask = (np.isnan(cur_hist_ret_df).any(axis=1)) | (np.isnan(cur_weekly_ret_df))
+        def permno_to_gvkey(mapper_df,date,permno):
+            return get_mapper(mapper_df,cur_date,permno=permno)
+
+
+        cur_hist_ret_df_lst, cur_weekly_ret_df_lst = [], []
+        for t in range(T):
+            # Individual stock features
+            cur_hist_ret_df = get_hist_ret_df(self.weekly_hist_ret_df,self.date_lst[idx+t],gvkey_to_idx,permno_to_gvkey,self.mapper_df,cur_universe,cur_permno_universe)
+            cur_hist_ret_df_lst.append(cur_hist_ret_df)
+            # Labels
+            cur_weekly_ret_df = get_weekly_ret_df(self.weekly_ret_df,self.date_lst[idx+t+1],gvkey_to_idx,permno_to_gvkey,self.mapper_df,cur_universe,cur_permno_universe)
+            cur_weekly_ret_df_lst.append(cur_weekly_ret_df)
+        # print(len(cur_hist_ret_df_lst), cur_hist_ret_df_lst[0].shape)
+        # print(len(cur_weekly_ret_df_lst), cur_weekly_ret_df_lst[0].shape)
+        cur_hist_ret_df = np.stack(cur_hist_ret_df_lst).transpose((1,0,2))
+        cur_weekly_ret_df = np.stack(cur_weekly_ret_df_lst).transpose((1,0))
+
+        # Individual stock features
+        # cur_hist_ret_df = get_hist_ret_df(self.weekly_hist_ret_df,cur_date,get_permnogvkey_toidx_mapper,get_mapper,self.mapper_df,cur_universe,cur_permno_universe)
+        # Labels
+        # cur_weekly_ret_df = get_weekly_ret_df(self.weekly_ret_df,next_date,get_permnogvkey_toidx_mapper,get_mapper,self.mapper_df,cur_universe,cur_permno_universe)
+        # print(cur_hist_ret_df.shape)
+        # print(cur_weekly_ret_df.shape)
+
+        mask = (np.isnan(cur_hist_ret_df).any(axis=(1,2))) | (np.isnan(cur_weekly_ret_df).any(axis=1))
         mask = ~mask
+
+        # print(mask.shape)
 
         return torch.Tensor(sector_edge_lst).to(self.device),\
                torch.Tensor(c_edge_lst).to(self.device),s_edge_lst,\
