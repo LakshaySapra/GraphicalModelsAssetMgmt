@@ -25,7 +25,7 @@ class GCN_LSTM(nn.Module):
         self.conv_stock   = nn.ModuleList([GCNConv(input, output, improved=True) for input, output in zip([self.LSTM_output_size]+self.GCN_sizes[:-1], self.GCN_sizes)])
         self.conv_supplies_to   = nn.ModuleList([GCNConv(input, output, improved=True) for input, output in zip([self.LSTM_output_size]+self.GCN_sizes[:-1], self.GCN_sizes)])
         self.conv_supplies_from   = nn.ModuleList([GCNConv(input, output, improved=True) for input, output in zip([self.LSTM_output_size]+self.GCN_sizes[:-1], self.GCN_sizes)])
-        self.linear = nn.Sequential(*[nn.Linear(input, output) for input, output in zip([self.GCN_sizes[-1]]*3+self.Linear_sizes[:-1], self.Linear_sizes)])
+        self.linear = nn.Sequential(*([j for input, output in zip([self.GCN_sizes[-1]*3]+self.Linear_sizes[:-1], self.Linear_sizes) for j in [nn.Linear(input, output), nn.LeakyReLU()][:-1]]))
 
     def change_edges(self, edge, time):
         shape = edge.shape[1]
@@ -44,7 +44,7 @@ class GCN_LSTM(nn.Module):
             returns (torch.Tensor): Expected returns, dimension n_stocks*time
         """
         n_stocks, time, features = x.shape
-        node_features = self.lstm(x)
+        node_features = F.leaky_relu(self.lstm(x))
         
         # For conv, we have batch*time batches, each with n_stocks nodesx1
         node_features  = node_features.permute(1, 0, 2).view(time*n_stocks, self.LSTM_output_size)
@@ -55,15 +55,15 @@ class GCN_LSTM(nn.Module):
         
         node_features_stock = node_features
         for i in self.conv_stock:
-            node_features_stock = i(node_features_stock, new_edge_index_stock, batch=batch_vector)
+            node_features_stock = F.leaky_relu(i(node_features_stock, new_edge_index_stock, batch=batch_vector))
         
         node_features_supplies_to = node_features
         for i in self.conv_supplies_to:
-            node_features_supplies_to = i(node_features_supplies_to, new_edge_index_supplies_to, batch=batch_vector)
+            node_features_supplies_to = F.leaky_relu(i(node_features_supplies_to, new_edge_index_supplies_to, batch=batch_vector))
         
         node_features_supplies_from = node_features
         for i in self.conv_supplies_from:
-            node_features_supplies_from = i(node_features_supplies_from, new_edge_index_supplies_from, batch=batch_vector)
+            node_features_supplies_from = F.leaky_relu(i(node_features_supplies_from, new_edge_index_supplies_from, batch=batch_vector))
         
         out = torch.cat([node_features_stock, node_features_supplies_to, node_features_supplies_from], 1)
         
