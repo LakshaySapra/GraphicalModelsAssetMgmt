@@ -2,12 +2,16 @@ from dataset import GNNDataset
 from torch.utils.data import DataLoader
 from GCN_LSTM_without_batching import GCN_LSTM
 import torch
+import pytorch_lightning as pl
 
 if __name__ == '__main__':
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    dataset = GNNDataset(device=device)
+    dataset = GNNDataset()
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=0, pin_memory=False, persistent_workers=False) #takes care of shuffling
-    print([i.shape for i in next(iter(dataloader))])
-    #model = GCN_LSTM()
+    model = GCN_LSTM(13)
+    #trainer = pl.Trainer(gpus=1, limit_train_batches=100, max_epochs=1)
+    trainer = pl.Trainer(max_epochs=1)
+    trainer.fit(model=model, train_dataloaders=dataloader)
 
-#https://stackoverflow.com/questions/69952475/how-to-solve-the-pytorch-geometric-install-error-undefined-symbol-zn5torch3ji worked
+# Notes
+# Getting PyG to work:
+# https://stackoverflow.com/questions/69952475/how-to-solve-the-pytorch-geometric-install-error-undefined-symbol-zn5torch3ji worked

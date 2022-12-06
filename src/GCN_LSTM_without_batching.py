@@ -3,12 +3,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch_geometric.nn import GCNConv
+import pytorch_lightning as pl
 
 from typing import Union, List
 
-class GCN_LSTM(nn.Module):
+class GCN_LSTM(pl.LightningModule):#(nn.Module):
     def __init__(self, LSTM_input_size:int, LSTM_output_size:int=16, LSTM_num_layers:int=2, GCN_sizes:Union[None, List[int]]=None,
-                 Linear_Sizes:Union[None, List[int]]=None, dropout=0.1) -> None:
+                 Linear_Sizes:Union[None, List[int]]=None, dropout=0.1, debug=lambda x: print(x)) -> None:
         super().__init__()
         
         if GCN_sizes is None:
@@ -25,12 +26,17 @@ class GCN_LSTM(nn.Module):
         self.conv_stock   = nn.ModuleList([GCNConv(input, output, improved=True) for input, output in zip([self.LSTM_output_size]+self.GCN_sizes[:-1], self.GCN_sizes)])
         self.conv_supplies_to   = nn.ModuleList([GCNConv(input, output, improved=True) for input, output in zip([self.LSTM_output_size]+self.GCN_sizes[:-1], self.GCN_sizes)])
         self.conv_supplies_from   = nn.ModuleList([GCNConv(input, output, improved=True) for input, output in zip([self.LSTM_output_size]+self.GCN_sizes[:-1], self.GCN_sizes)])
-        self.linear = nn.Sequential(*([j for input, output in zip([self.GCN_sizes[-1]*3]+self.Linear_sizes[:-1], self.Linear_sizes) for j in [nn.Linear(input, output), nn.LeakyReLU()][:-1]]))
+        self.linear = nn.Sequential(*([j for input, output in zip([self.GCN_sizes[-1]*3]+self.Linear_sizes[:-1], self.Linear_sizes) for j in [nn.Linear(input, output), nn.LeakyReLU()]][:-1]))
+        self.debug = debug
 
     def change_edges(self, edge, time):
         shape = edge.shape[1]
-        total_edges    = edge.max().item() + 1 #ensure this is int
-        return edge.repeat(time, 1, 1).view(time, 2, shape) + total_edges*torch.arange(total_edges).repeat_interleave(total_edges)
+        total_edges = int(edge.max().item()) + 1 #ensure this is int
+        print(total_edges)
+        #return edge.repeat(time, 1, 1).view(time, 2, shape) + total_edges*torch.arange(total_edges).repeat_interleave(total_edges)
+        a = edge.repeat(time, 1, 1).view(time, 2, shape).permute(1, 0, 2)
+        b = torch.arange(time, device=self.device)[None, :, None]*total_edges
+        return (a + b).reshape(2, -1)
     
     def forward(self, x:torch.Tensor, edge_index_stock:torch.IntTensor, edge_index_supplies_to:torch.IntTensor, edge_index_supplies_from:torch.IntTensor) -> torch.Tensor:
         """forward function
@@ -43,33 +49,68 @@ class GCN_LSTM(nn.Module):
         Returns:
             returns (torch.Tensor): Expected returns, dimension n_stocks*time
         """
+        self.debug('a')
         n_stocks, time, features = x.shape
-        node_features = F.leaky_relu(self.lstm(x))
+        x, _ = self.lstm(x) #Also outputs (final hidden states, the final cell state) https://pytorch.org/docs/stable/generated/torch.nn.LSTM.html
+        node_features = F.leaky_relu(x)
         
         # For conv, we have batch*time batches, each with n_stocks nodesx1
+        self.debug('b')
         node_features  = node_features.permute(1, 0, 2).view(time*n_stocks, self.LSTM_output_size)
-        batch_vector   = torch.arange(time).repeat_interleave(n_stocks)
+        #batch_vector   = torch.arange(time).repeat_interleave(n_stocks)
         new_edge_index_stock = self.change_edges(edge_index_stock, time)
         new_edge_index_supplies_to = self.change_edges(edge_index_supplies_to, time)
         new_edge_index_supplies_from = self.change_edges(edge_index_supplies_from, time)
         
+        self.debug('c')
         node_features_stock = node_features
         for i in self.conv_stock:
-            node_features_stock = F.leaky_relu(i(node_features_stock, new_edge_index_stock, batch=batch_vector))
+            #node_features_stock = F.leaky_relu(i(node_features_stock, new_edge_index_stock, batch=batch_vector))
+            self.debug((node_features_stock.shape, new_edge_index_stock.shape, new_edge_index_stock.max().item()))
+            node_features_stock = F.leaky_relu(i(node_features_stock, new_edge_index_stock))
         
+        self.debug('d')
         node_features_supplies_to = node_features
         for i in self.conv_supplies_to:
-            node_features_supplies_to = F.leaky_relu(i(node_features_supplies_to, new_edge_index_supplies_to, batch=batch_vector))
+            #node_features_supplies_to = F.leaky_relu(i(node_features_supplies_to, new_edge_index_supplies_to, batch=batch_vector))
+            self.debug((node_features_supplies_to.shape, new_edge_index_supplies_to.shape))
+            node_features_supplies_to = F.leaky_relu(i(node_features_supplies_to, new_edge_index_supplies_to))
         
+        self.debug('e')
         node_features_supplies_from = node_features
         for i in self.conv_supplies_from:
-            node_features_supplies_from = F.leaky_relu(i(node_features_supplies_from, new_edge_index_supplies_from, batch=batch_vector))
+            #node_features_supplies_from = F.leaky_relu(i(node_features_supplies_from, new_edge_index_supplies_from, batch=batch_vector))
+            node_features_supplies_from = F.leaky_relu(i(node_features_supplies_from, new_edge_index_supplies_from))
         
+        self.debug('f')
         out = torch.cat([node_features_stock, node_features_supplies_to, node_features_supplies_from], 1)
         
-        out = torch.squeeze(self.linear(node_features))
+        self.debug('g')
+        out = torch.squeeze(self.linear(out))
         
         #currently, shape batch*time*n_stocks. convert to batch, n_stocks, time
         return out.reshape(time, n_stocks).T
+    
+    def configure_optimizers (self):
+        optimizer = optim.Adam(self.parameters(), lr=1e-3) 
+        return optimizer
+    
+    def training_step (self, train_batch, batch_idx):
+        sector_edge_lst, c_edge_lst, s_edge_lst, cur_hist_ret_df, cur_weekly_ret_df, mask = train_batch
         
+        # Single element, remove batch argument
+        sector_edge_lst = sector_edge_lst.squeeze(dim=0)
+        c_edge_lst = c_edge_lst.squeeze(dim=0)
+        s_edge_lst = s_edge_lst.squeeze(dim=0)
+        cur_hist_ret_df = cur_hist_ret_df.squeeze(dim=0)
+        cur_weekly_ret_df = cur_weekly_ret_df.squeeze(dim=0)
+        mask = mask.squeeze(dim=0)[:, None]
         
+        predicted_rets = self.forward(cur_hist_ret_df, sector_edge_lst, s_edge_lst, c_edge_lst)
+        time = predicted_rets.shape[1]
+        loss = (mask*predicted_rets[:, (time//2):] - mask*cur_weekly_ret_df[:, (time//2):]).square().sum()
+        self.log('train_loss', loss)
+        return loss
+    
+    def validation_step(self, val_batch, batch_idx): 
+        pass

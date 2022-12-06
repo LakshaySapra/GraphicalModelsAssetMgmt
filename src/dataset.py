@@ -95,7 +95,7 @@ def get_weekly_ret_df(weekly_ret_df,date,gvkey_to_idx_mapper,permno_to_gvkey_map
     return cur_df.values
 
 class GNNDataset(Dataset):
-    def __init__(self, data_path='../data/',device='cpu',T=52):
+    def __init__(self, data_path='../data/',T=52):
         super().__init__()
         self.T = T
         self.universe = pd.read_pickle(data_path+'universe.pkl')
@@ -115,7 +115,6 @@ class GNNDataset(Dataset):
             cur_hist_ret_df = cur_hist_ret_df[cur_hist_ret_df.index.get_level_values(0) == cur_hist_ret_df.index.get_level_values(0).max()].droplevel(0,axis=0)
             concat_lst.append(cur_hist_ret_df.stack())
         self.weekly_hist_ret_df = pd.DataFrame(concat_lst,index=self.date_lst).stack(level=0)
-        self.device=device
     
     def __len__(self):
         return len(self.date_lst)-1-self.T
@@ -174,10 +173,12 @@ class GNNDataset(Dataset):
 
         mask = (np.isnan(cur_hist_ret_df).any(axis=(1,2))) | (np.isnan(cur_weekly_ret_df).any(axis=1))
         mask = ~mask
+        
+        assert(sector_edge_lst.max() < 500)
 
-        return torch.Tensor(sector_edge_lst.T).to(self.device),\
-               torch.Tensor(c_edge_lst.T).to(self.device),\
-               torch.Tensor(s_edge_lst).to(self.device),\
-               torch.Tensor(cur_hist_ret_df).to(self.device),\
-               torch.Tensor(cur_weekly_ret_df).to(self.device),\
-               torch.Tensor(mask).to(self.device)
+        return torch.Tensor(sector_edge_lst.T).long(),\
+               torch.Tensor(c_edge_lst.T).long(),\
+               torch.Tensor(s_edge_lst.T).long(),\
+               torch.Tensor(cur_hist_ret_df),\
+               torch.Tensor(cur_weekly_ret_df),\
+               torch.Tensor(mask)
