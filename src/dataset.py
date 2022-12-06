@@ -174,7 +174,14 @@ class GNNDataset(Dataset):
         mask = (np.isnan(cur_hist_ret_df).any(axis=(1,2))) | (np.isnan(cur_weekly_ret_df).any(axis=1))
         mask = ~mask
         
+        print(np.where(~mask)[0])
+        print(np.intersect1d(np.where(~mask)[0], sector_edge_lst))
+        
         assert(sector_edge_lst.max() < 500)
+        assert(len(np.intersect1d(np.where(~mask)[0], sector_edge_lst)) == 0)
+        assert(len(np.intersect1d(np.where(~mask)[0], c_edge_lst)) == 0)
+        assert(len(np.intersect1d(np.where(~mask)[0], s_edge_lst)) == 0)
+        
 
         return torch.Tensor(sector_edge_lst.T).long(),\
                torch.Tensor(c_edge_lst.T).long(),\

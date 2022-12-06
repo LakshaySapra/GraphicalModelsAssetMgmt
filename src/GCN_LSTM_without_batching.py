@@ -32,7 +32,7 @@ class GCN_LSTM(pl.LightningModule):#(nn.Module):
     def change_edges(self, edge, time):
         shape = edge.shape[1]
         total_edges = int(edge.max().item()) + 1 #ensure this is int
-        print(total_edges)
+        self.debug(total_edges)
         #return edge.repeat(time, 1, 1).view(time, 2, shape) + total_edges*torch.arange(total_edges).repeat_interleave(total_edges)
         a = edge.repeat(time, 1, 1).view(time, 2, shape).permute(1, 0, 2)
         b = torch.arange(time, device=self.device)[None, :, None]*total_edges
@@ -51,8 +51,11 @@ class GCN_LSTM(pl.LightningModule):#(nn.Module):
         """
         self.debug('a')
         n_stocks, time, features = x.shape
+        #print('a1', (torch.isnan(x).sum(dim=(1, 2)) > 0.5).sum())
         x, _ = self.lstm(x) #Also outputs (final hidden states, the final cell state) https://pytorch.org/docs/stable/generated/torch.nn.LSTM.html
+        #print('a2', (torch.isnan(x).sum(dim=(1, 2)) > 0.5).sum())
         node_features = F.leaky_relu(x)
+        #print('a3', (torch.isnan(node_features).sum(dim=(1, 2)) > 0.5).sum())
         
         # For conv, we have batch*time batches, each with n_stocks nodesx1
         self.debug('b')
@@ -66,21 +69,24 @@ class GCN_LSTM(pl.LightningModule):#(nn.Module):
         node_features_stock = node_features
         for i in self.conv_stock:
             #node_features_stock = F.leaky_relu(i(node_features_stock, new_edge_index_stock, batch=batch_vector))
-            self.debug((node_features_stock.shape, new_edge_index_stock.shape, new_edge_index_stock.max().item()))
+            #self.debug((node_features_stock.shape, new_edge_index_stock.shape, new_edge_index_stock.max().item()))
             node_features_stock = F.leaky_relu(i(node_features_stock, new_edge_index_stock))
+            print('c', (torch.isnan(node_features_stock.view(time,n_stocks,-1)).sum(dim=(0, 2)) > 0.5).sum())
         
         self.debug('d')
         node_features_supplies_to = node_features
         for i in self.conv_supplies_to:
             #node_features_supplies_to = F.leaky_relu(i(node_features_supplies_to, new_edge_index_supplies_to, batch=batch_vector))
-            self.debug((node_features_supplies_to.shape, new_edge_index_supplies_to.shape))
+            #self.debug((node_features_supplies_to.shape, new_edge_index_supplies_to.shape))
             node_features_supplies_to = F.leaky_relu(i(node_features_supplies_to, new_edge_index_supplies_to))
+            print('f', (torch.isnan(node_features_supplies_to.view(time,n_stocks,-1)).sum(dim=(0, 2)) > 0.5).sum())
         
         self.debug('e')
         node_features_supplies_from = node_features
         for i in self.conv_supplies_from:
             #node_features_supplies_from = F.leaky_relu(i(node_features_supplies_from, new_edge_index_supplies_from, batch=batch_vector))
             node_features_supplies_from = F.leaky_relu(i(node_features_supplies_from, new_edge_index_supplies_from))
+            print('e', (torch.isnan(node_features_supplies_from.view(time,n_stocks,-1)).sum(dim=(0, 2)) > 0.5).sum())
         
         self.debug('f')
         out = torch.cat([node_features_stock, node_features_supplies_to, node_features_supplies_from], 1)
@@ -104,11 +110,16 @@ class GCN_LSTM(pl.LightningModule):#(nn.Module):
         s_edge_lst = s_edge_lst.squeeze(dim=0)
         cur_hist_ret_df = cur_hist_ret_df.squeeze(dim=0)
         cur_weekly_ret_df = cur_weekly_ret_df.squeeze(dim=0)
-        mask = mask.squeeze(dim=0)[:, None]
+        mask = mask.squeeze(dim=0)[:, None] > 0.5
         
+        null_values = torch.logical_not(mask).squeeze().nonzero(as_tuple=True)
+        
+        #cur_hist_ret_df = torch.nan_to_num(cur_hist_ret_df, nan=-float('inf'))
         predicted_rets = self.forward(cur_hist_ret_df, sector_edge_lst, s_edge_lst, c_edge_lst)
         time = predicted_rets.shape[1]
-        loss = (mask*predicted_rets[:, (time//2):] - mask*cur_weekly_ret_df[:, (time//2):]).square().sum()
+        predicted_rets = torch.masked_select(predicted_rets[:, (time//2):]   , mask)
+        actual_rets    = torch.masked_select(cur_weekly_ret_df[:, (time//2):], mask)
+        loss = (predicted_rets - actual_rets).square().sum()
         self.log('train_loss', loss)
         return loss
     
