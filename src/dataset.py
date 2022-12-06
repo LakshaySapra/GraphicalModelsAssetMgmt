@@ -139,16 +139,14 @@ class GNNDataset(Dataset):
         cur_universe = get_gvkey_universe(self.universe,cur_date)
         cur_permno_universe = get_permno_universe(self.permno_universe,cur_date)
 
-        # Sector edges
-        sector_edge_lst = get_sector_edges(self.sector_df,self.all_sectors,cur_date,get_permnogvkey_toidx_mapper,self.mapper_df,cur_universe)
-        # Consumer and supplier edges
-        c_edge_lst, s_edge_lst = get_supply_chain_edges(self.supchain_df,cur_date,get_permnogvkey_toidx_mapper,self.mapper_df,cur_universe)
-
         def gvkey_to_idx(mapper_df,date,gvkey):
             return get_permnogvkey_toidx_mapper(mapper_df,cur_date,gvkey=gvkey)
 
         def permno_to_gvkey(mapper_df,date,permno):
             return get_mapper(mapper_df,cur_date,permno=permno)
+
+        def idx_to_gvkey(mapper_df,date,idx):
+            return get_idxto_permnogvkey_mapper(mapper_df,cur_date,idx,gvkey=True)
 
 
         cur_hist_ret_df_lst, cur_weekly_ret_df_lst = [], []
@@ -173,9 +171,18 @@ class GNNDataset(Dataset):
 
         mask = (np.isnan(cur_hist_ret_df).any(axis=(1,2))) | (np.isnan(cur_weekly_ret_df).any(axis=1))
         mask = ~mask
+        valid_gvkeys = idx_to_gvkey(self.mapper_df,cur_date,np.argwhere(mask)[:,0])
+        # print(len(valid_gvkeys),len(cur_universe))
+        cur_universe = [x for x in cur_universe if x in valid_gvkeys]
+        # print(len(valid_gvkeys),len(cur_universe))
+
+        # Sector edges
+        sector_edge_lst = get_sector_edges(self.sector_df,self.all_sectors,cur_date,gvkey_to_idx,self.mapper_df,cur_universe)
+        # Consumer and supplier edges
+        c_edge_lst, s_edge_lst = get_supply_chain_edges(self.supchain_df,cur_date,gvkey_to_idx,self.mapper_df,cur_universe)
         
-        print(np.where(~mask)[0])
-        print(np.intersect1d(np.where(~mask)[0], sector_edge_lst))
+        # print(np.where(~mask)[0])
+        # print(np.intersect1d(np.where(~mask)[0], sector_edge_lst))
         
         assert(sector_edge_lst.max() < 500)
         assert(len(np.intersect1d(np.where(~mask)[0], sector_edge_lst)) == 0)

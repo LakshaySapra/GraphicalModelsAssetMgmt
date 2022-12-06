@@ -2,11 +2,12 @@ from dataset import GNNDataset
 from torch.utils.data import DataLoader
 from GCN_LSTM_without_batching import GCN_LSTM
 import torch
+from tqdm.auto import tqdm
 import pytorch_lightning as pl
 
 if __name__ == '__main__':
     dataset = GNNDataset()
-    for i in iter(dataset):
+    for i in tqdm(iter(dataset)):
         pass
     #x = next(iter(dataset))
     #print(x[0], torch.isnan(x[0]).sum().item())
