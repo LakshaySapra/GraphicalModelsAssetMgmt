@@ -1,0 +1,37 @@
+diff --git a/.gitignore b/.gitignore
+index dcc0aaf..3837d29 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,4 +1,5 @@
+ **/*.gz
+ src/__pycache__/*
+ lightning_logs/*
+-wandb/*
+\ No newline at end of file
++wandb/*
++PGM Project/*
+\ No newline at end of file
+diff --git a/src/__pycache__/GCN_LSTM_without_batching.cpython-310.pyc b/src/__pycache__/GCN_LSTM_without_batching.cpython-310.pyc
+index fdae2d4..f1f8afa 100644
+Binary files a/src/__pycache__/GCN_LSTM_without_batching.cpython-310.pyc and b/src/__pycache__/GCN_LSTM_without_batching.cpython-310.pyc differ
+diff --git a/src/__pycache__/dataset.cpython-310.pyc b/src/__pycache__/dataset.cpython-310.pyc
+index 59cbd42..7b9d4d8 100644
+Binary files a/src/__pycache__/dataset.cpython-310.pyc and b/src/__pycache__/dataset.cpython-310.pyc differ
+diff --git a/src/train.py b/src/train.py
+index 4eaab9b..f1387a5 100644
+--- a/src/train.py
++++ b/src/train.py
+@@ -8,10 +8,10 @@ from pytorch_lightning.loggers import WandbLogger
+ 
+ if __name__ == '__main__':
+     dataset = GNNDataset()
+-    dataloader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=0, pin_memory=False, persistent_workers=False) #takes care of shuffling
+-    model = GCN_LSTM(13, debug=lambda x: None)
++    dataloader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=10, pin_memory=False, persistent_workers=False) #takes care of shuffling
++    model = GCN_LSTM(13, debug=lambda x: None, GCN_sizes = [16, 32, 32, 16], LSTM_num_layers=4)
+     wandb_logger = WandbLogger(project='PGM Project', log_model="all")
+-    trainer = pl.Trainer(gpus=1, max_epochs=1, logger=wandb_logger)
++    trainer = pl.Trainer(gpus=1, max_epochs=10, logger=wandb_logger)
+     #trainer = pl.Trainer(max_epochs=1)
+     trainer.fit(model=model, train_dataloaders=dataloader)
+ 

@@ -98,7 +98,7 @@ class GCN_LSTM(pl.LightningModule):#(nn.Module):
         return out.reshape(time, n_stocks).T
     
     def configure_optimizers (self):
-        optimizer = optim.Adam(self.parameters(), lr=1e-3) 
+        optimizer = optim.Adam(self.parameters(), lr=1e-5) 
         return optimizer
     
     def training_step (self, train_batch, batch_idx):
@@ -117,7 +117,7 @@ class GCN_LSTM(pl.LightningModule):#(nn.Module):
         time = predicted_rets.shape[1]
         predicted_rets = torch.masked_select(predicted_rets[:, (time//2):]   , mask)
         actual_rets    = torch.masked_select(cur_weekly_ret_df[:, (time//2):], mask)
-        loss = (predicted_rets - actual_rets).square().sum()
+        loss = (predicted_rets - actual_rets).square().mean()
         self.log('train_loss', loss)
         return loss
     

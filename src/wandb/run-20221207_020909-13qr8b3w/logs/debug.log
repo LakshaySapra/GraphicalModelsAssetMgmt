@@ -1,0 +1,26 @@
+2022-12-07 02:09:09,762 INFO    MainThread:16366 [wandb_setup.py:_flush():68] Configure stats pid to 16366
+2022-12-07 02:09:09,765 INFO    MainThread:16366 [wandb_setup.py:_flush():68] Loading settings from /home/hrishikm/.config/wandb/settings
+2022-12-07 02:09:09,766 INFO    MainThread:16366 [wandb_setup.py:_flush():68] Loading settings from /mnt/g/My Drive/SecondBrain/8 Archive/CMU Stuff/Mini 5/PGM/Project/GraphicalModelsAssetMgmt/SRC/wandb/settings
+2022-12-07 02:09:09,768 INFO    MainThread:16366 [wandb_setup.py:_flush():68] Loading settings from environment variables: {'_require_service': 'True'}
+2022-12-07 02:09:09,769 INFO    MainThread:16366 [wandb_setup.py:_flush():68] Inferring run settings from compute environment: {'program_relpath': 'SRC/train.py', 'program': '/mnt/g/My Drive/SecondBrain/8 Archive/CMU Stuff/Mini 5/PGM/Project/GraphicalModelsAssetMgmt/SRC/train.py'}
+2022-12-07 02:09:09,772 INFO    MainThread:16366 [wandb_init.py:_log_setup():476] Logging user logs to ./wandb/run-20221207_020909-13qr8b3w/logs/debug.log
+2022-12-07 02:09:09,774 INFO    MainThread:16366 [wandb_init.py:_log_setup():477] Logging internal logs to ./wandb/run-20221207_020909-13qr8b3w/logs/debug-internal.log
+2022-12-07 02:09:09,776 INFO    MainThread:16366 [wandb_init.py:init():516] calling init triggers
+2022-12-07 02:09:09,777 INFO    MainThread:16366 [wandb_init.py:init():519] wandb.init called with sweep_config: {}
+config: {}
+2022-12-07 02:09:09,779 INFO    MainThread:16366 [wandb_init.py:init():569] starting backend
+2022-12-07 02:09:09,779 INFO    MainThread:16366 [wandb_init.py:init():573] setting up manager
+2022-12-07 02:09:09,803 INFO    MainThread:16366 [backend.py:_multiprocessing_setup():102] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2022-12-07 02:09:09,834 INFO    MainThread:16366 [wandb_init.py:init():580] backend started and connected
+2022-12-07 02:09:09,850 INFO    MainThread:16366 [wandb_init.py:init():658] updated telemetry
+2022-12-07 02:09:10,588 INFO    MainThread:16366 [wandb_init.py:init():693] communicating run to backend with 60 second timeout
+2022-12-07 02:09:11,187 INFO    MainThread:16366 [wandb_run.py:_on_init():2006] communicating current version
+2022-12-07 02:09:11,462 INFO    MainThread:16366 [wandb_run.py:_on_init():2010] got version response 
+2022-12-07 02:09:11,464 INFO    MainThread:16366 [wandb_init.py:init():728] starting run threads in backend
+2022-12-07 02:09:16,576 INFO    MainThread:16366 [wandb_run.py:_console_start():1986] atexit reg
+2022-12-07 02:09:16,582 INFO    MainThread:16366 [wandb_run.py:_redirect():1844] redirect: SettingsConsole.WRAP_RAW
+2022-12-07 02:09:16,587 INFO    MainThread:16366 [wandb_run.py:_redirect():1909] Wrapping output streams.
+2022-12-07 02:09:16,588 INFO    MainThread:16366 [wandb_run.py:_redirect():1931] Redirects installed.
+2022-12-07 02:09:16,593 INFO    MainThread:16366 [wandb_init.py:init():765] run started, returning control to user process
+2022-12-07 02:09:20,712 INFO    MainThread:16366 [wandb_run.py:_config_callback():1163] config_cb None None {'LSTM_input_size': 13, 'LSTM_output_size': 16, 'LSTM_num_layers': 4, 'GCN_sizes': [16, 32, 32, 16], 'Linear_Sizes': None, 'dropout': 0.1, 'debug': '<lambda>'}
+2022-12-07 02:17:58,617 WARNING MsgRouterThr:16366 [router.py:message_loop():77] message_loop has been closed

@@ -1,0 +1,67 @@
+wandb_version: 1
+
+GCN_sizes:
+  desc: null
+  value:
+  - 16
+  - 32
+  - 32
+  - 16
+LSTM_input_size:
+  desc: null
+  value: 13
+LSTM_num_layers:
+  desc: null
+  value: 4
+LSTM_output_size:
+  desc: null
+  value: 16
+Linear_Sizes:
+  desc: null
+  value: null
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.13.6
+    code_path: code/SRC/train.py
+    framework: lightning
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    m:
+    - 1: trainer/global_step
+      6:
+      - 3
+    - 1: train_loss
+      5: 1
+      6:
+      - 1
+    - 1: epoch
+      5: 1
+      6:
+      - 1
+    python_version: 3.10.8
+    start_time: 1670396949.849146
+    t:
+      1:
+      - 1
+      - 9
+      - 55
+      - 77
+      2:
+      - 1
+      - 9
+      - 55
+      - 77
+      3:
+      - 7
+      - 23
+      4: 3.10.8
+      5: 0.13.6
+      8:
+      - 5
+debug:
+  desc: null
+  value: <lambda>
+dropout:
+  desc: null
+  value: 0.1
