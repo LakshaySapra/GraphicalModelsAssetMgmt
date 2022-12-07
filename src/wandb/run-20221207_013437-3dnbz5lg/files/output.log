@@ -1,0 +1,43 @@
+/home/hrishikm/Programs/miniconda3/envs/Main/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/accelerator_connector.py:446: LightningDeprecationWarning: Setting `Trainer(gpus=1)` is deprecated in v1.7 and will be removed in v2.0. Please use `Trainer(accelerator='gpu', devices=1)` instead.
+  rank_zero_deprecation(
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+/home/hrishikm/Programs/miniconda3/envs/Main/lib/python3.10/site-packages/pytorch_lightning/utilities/parsing.py:101: UserWarning: attribute 'debug' removed from hparams because it cannot be pickled
+  rank_zero_warn(f"attribute '{k}' removed from hparams because it cannot be pickled")
+/home/hrishikm/Programs/miniconda3/envs/Main/lib/python3.10/site-packages/pytorch_lightning/trainer/configuration_validator.py:108: PossibleUserWarning: You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.
+  rank_zero_warn(
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+  | Name               | Type       | Params
+--------------------------------------------------
+0 | lstm               | LSTM       | 4.2 K
+1 | conv_stock         | ModuleList | 544
+2 | conv_supplies_to   | ModuleList | 544
+3 | conv_supplies_from | ModuleList | 544
+4 | linear             | Sequential | 961
+--------------------------------------------------
+6.8 K     Trainable params
+0         Non-trainable params
+6.8 K     Total params
+0.027     Total estimated model params size (MB)
+/home/hrishikm/Programs/miniconda3/envs/Main/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:224: PossibleUserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 20 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  rank_zero_warn(
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 0:  11%|█         | 51/469 [00:31<04:21,  1.60it/s, loss=1.77e+03, v_num=z5lg]
+/home/hrishikm/Programs/miniconda3/envs/Main/lib/python3.10/site-packages/pytorch_lightning/trainer/call.py:48: UserWarning: Detected KeyboardInterrupt, attempting graceful shutdown...
+  rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")

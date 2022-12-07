@@ -1,0 +1,145 @@
+{
+    "os": "Linux-5.15.74.2-microsoft-standard-WSL2-x86_64-with-glibc2.36",
+    "python": "3.10.8",
+    "heartbeatAt": "2022-12-07T06:34:39.566118",
+    "startedAt": "2022-12-07T06:34:37.407991",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/mnt/g/My Drive/SecondBrain/8 Archive/CMU Stuff/Mini 5/PGM/Project/GraphicalModelsAssetMgmt/src/train.py",
+    "codePath": "src/train.py",
+    "git": {
+        "remote": "https://github.com/LakshaySapra/GraphicalModelsAssetMgmt.git",
+        "commit": "5afce8d3f86d33989339b91e427f25e865d6d683"
+    },
+    "email": "richumania@gmail.com",
+    "root": "/mnt/g/My Drive/SecondBrain/8 Archive/CMU Stuff/Mini 5/PGM/Project/GraphicalModelsAssetMgmt",
+    "host": "hrishi",
+    "username": "hrishikm",
+    "executable": "/home/hrishikm/Programs/miniconda3/envs/Main/bin/python",
+    "cpu_count": 10,
+    "cpu_count_logical": 20,
+    "cpu_freq": {
+        "current": 2688.0,
+        "min": 0.0,
+        "max": 0.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2688.0,
+            "min": 0.0,
+            "max": 0.0
+        }
+    ],
+    "disk": {
+        "total": 1006.853931427002,
+        "used": 40.27257537841797
+    },
+    "gpu": "NVIDIA GeForce RTX 3060 Laptop GPU",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 3060 Laptop GPU",
+            "memory_total": 6442450944
+        }
+    ],
+    "memory": {
+        "total": 15.33432388305664
+    }
+}

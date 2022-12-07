@@ -11,6 +11,7 @@ class GCN_LSTM(pl.LightningModule):#(nn.Module):
     def __init__(self, LSTM_input_size:int, LSTM_output_size:int=16, LSTM_num_layers:int=2, GCN_sizes:Union[None, List[int]]=None,
                  Linear_Sizes:Union[None, List[int]]=None, dropout=0.1, debug=lambda x: print(x)) -> None:
         super().__init__()
+        self.save_hyperparameters()
         
         if GCN_sizes is None:
             GCN_sizes = [16, 16]
