@@ -96,7 +96,7 @@ def get_weekly_ret_df(weekly_ret_df,date,gvkey_to_idx_mapper,permno_to_gvkey_map
     return cur_df.values
 
 class GNNDataset(Dataset):
-    def __init__(self, begin_idx=None, end_idx=None, data_path='../data/',T=52,pad=False):
+    def __init__(self, begin_idx=None, end_idx=None, data_path='../data/',T=52,pad=False,get_sp=False):
         super().__init__()
         self.T = T
         self.universe = pd.read_pickle(data_path+'universe.pkl')
@@ -121,6 +121,7 @@ class GNNDataset(Dataset):
         self.pad=pad
         self.avg_rets = self.weekly_ret_df.to_numpy().reshape(-1)
         self.avg_rets = self.avg_rets[~np.isnan(self.avg_rets)].mean()
+        self.get_sp = get_sp
     
     def __len__(self):
         # return len(self.date_lst)-1-self.T

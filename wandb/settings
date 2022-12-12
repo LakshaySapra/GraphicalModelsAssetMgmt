@@ -1,0 +1,5 @@
+[default]
+entity = hrishikm
+project = PGM Project
+base_url = https://api.wandb.ai
+

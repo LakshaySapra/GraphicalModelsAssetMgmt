@@ -17,10 +17,17 @@ if __name__ == '__main__':
     #model = LSTM_only(13, debug=lambda x: None, LSTM_num_layers=4)
     wandb_logger = WandbLogger(project='PGM Project', log_model="all")
     profiler = None #AdvancedProfiler(dirpath=".", filename="perf_logs")
-    trainer = pl.Trainer(gpus=1, max_epochs=50, logger=wandb_logger, accumulate_grad_batches=20, auto_lr_find=True, gradient_clip_val=0.5, profiler=profiler)
+    trainer = pl.Trainer(gpus=1, max_epochs=1, logger=wandb_logger, accumulate_grad_batches=20, auto_lr_find=True, gradient_clip_val=0.5, profiler=profiler)
     #trainer.tune(model, train_dataloaders=train_dataloader)
     #trainer = pl.Trainer(max_epochs=1)
     trainer.fit(model=model, train_dataloaders=train_dataloader, val_dataloaders=test_dataloader)
+    final_dataset = GNNDataset()
+    train_dataloader = DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=7, pin_memory=True, persistent_workers=True)
+    for i in train_dataloader:
+        predicted_rets = model.validation_step(i, None)[:, -1]
+        long_threshold_supliers = torch.quantile(predicted_rets, q=0.8)
+        #short_threshold_supliers = torch.quantile(predicted_rets, q=0.8)
+        long_threshold_data = i[4][:, -1] 
 
 # Notes
 # Getting PyG to work:
