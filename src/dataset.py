@@ -96,7 +96,7 @@ def get_weekly_ret_df(weekly_ret_df,date,gvkey_to_idx_mapper,permno_to_gvkey_map
     return cur_df.values
 
 class GNNDataset(Dataset):
-    def __init__(self, begin_idx=None, end_idx=None, data_path='../data/',T=52):
+    def __init__(self, begin_idx=None, end_idx=None, data_path='../data/',T=52,pad=False):
         super().__init__()
         self.T = T
         self.universe = pd.read_pickle(data_path+'universe.pkl')
@@ -118,6 +118,9 @@ class GNNDataset(Dataset):
             cur_hist_ret_df = cur_hist_ret_df[cur_hist_ret_df.index.get_level_values(0) == cur_hist_ret_df.index.get_level_values(0).max()].droplevel(0,axis=0)
             concat_lst.append(cur_hist_ret_df.stack())
         self.weekly_hist_ret_df = pd.DataFrame(concat_lst,index=self.date_lst).stack(level=0)
+        self.pad=pad
+        self.avg_rets = self.weekly_ret_df.to_numpy().reshape(-1)
+        self.avg_rets = self.avg_rets[~np.isnan(self.avg_rets)].mean()
     
     def __len__(self):
         # return len(self.date_lst)-1-self.T
@@ -162,38 +165,25 @@ class GNNDataset(Dataset):
             # Labels
             cur_weekly_ret_df = get_weekly_ret_df(self.weekly_ret_df,self.date_lst[idx+t+1],gvkey_to_idx,permno_to_gvkey,self.mapper_df,cur_universe,cur_permno_universe)
             cur_weekly_ret_df_lst.append(cur_weekly_ret_df)
-        # print(len(cur_hist_ret_df_lst), cur_hist_ret_df_lst[0].shape)
-        # print(len(cur_weekly_ret_df_lst), cur_weekly_ret_df_lst[0].shape)
+        
         cur_hist_ret_df = np.stack(cur_hist_ret_df_lst).transpose((1,0,2))
         cur_weekly_ret_df = np.stack(cur_weekly_ret_df_lst).transpose((1,0))
 
-        # Individual stock features
-        # cur_hist_ret_df = get_hist_ret_df(self.weekly_hist_ret_df,cur_date,get_permnogvkey_toidx_mapper,get_mapper,self.mapper_df,cur_universe,cur_permno_universe)
-        # Labels
-        # cur_weekly_ret_df = get_weekly_ret_df(self.weekly_ret_df,next_date,get_permnogvkey_toidx_mapper,get_mapper,self.mapper_df,cur_universe,cur_permno_universe)
-        # print(cur_hist_ret_df.shape)
-        # print(cur_weekly_ret_df.shape)
-        # print("weekly shape:",cur_weekly_ret_df.shape)
-        # print(cur_weekly_ret_df[:10,:2],cur_weekly_ret_df[:10,-2:])
-        # print(cur_weekly_ret_df[-10:,:2],cur_weekly_ret_df[-10:,-2:])
-        # print(np.isnan(cur_hist_ret_df).any(axis=(1,2)).sum(),np.isnan(cur_weekly_ret_df).any(axis=1).sum(),np.isnan(cur_weekly_ret_df).any(axis=0).sum())
         mask = (np.isnan(cur_hist_ret_df).any(axis=(1,2))) | (np.isnan(cur_weekly_ret_df).any(axis=1))
         mask = ~mask
         valid_gvkeys = idx_to_gvkey(self.mapper_df,cur_date,np.argwhere(mask)[:,0])
-        # print(sum(mask),len(valid_gvkeys),len(cur_universe))
+        
         cur_universe = [x for x in cur_universe if x in valid_gvkeys]
-        # print(len(valid_gvkeys),len(cur_universe))
-
+        
         # Sector edges
         sector_edge_lst = get_sector_edges(self.sector_df,self.all_sectors,cur_date,gvkey_to_idx,self.mapper_df,cur_universe)
         # Consumer and supplier edges
         c_edge_lst, s_edge_lst = get_supply_chain_edges(self.supchain_df,cur_date,gvkey_to_idx,self.mapper_df,cur_universe)
         
-        # print(np.where(~mask)[0])
-        # print(np.intersect1d(np.where(~mask)[0], sector_edge_lst))
-        sector_edge_lst = np.concatenate([sector_edge_lst,-np.ones((124750-sector_edge_lst.shape[0],2))],axis=0)
-        c_edge_lst = np.concatenate([c_edge_lst,-np.ones((124750-c_edge_lst.shape[0],2))],axis=0)
-        s_edge_lst = np.concatenate([s_edge_lst,-np.ones((124750-s_edge_lst.shape[0],2))],axis=0)
+        if self.pad:
+            sector_edge_lst = np.concatenate([sector_edge_lst,-np.ones((124750-sector_edge_lst.shape[0],2))],axis=0)
+            c_edge_lst = np.concatenate([c_edge_lst,-np.ones((124750-c_edge_lst.shape[0],2))],axis=0)
+            s_edge_lst = np.concatenate([s_edge_lst,-np.ones((124750-s_edge_lst.shape[0],2))],axis=0)
         
         assert(sector_edge_lst.max() < 500)
         assert len(np.intersect1d(np.where(~mask)[0], sector_edge_lst)) == 0, np.intersect1d(np.where(~mask)[0], sector_edge_lst)

@@ -1,19 +1,28 @@
 from dataset import GNNDataset
 from torch.utils.data import DataLoader
 from GCN_LSTM_without_batching import GCN_LSTM
+from LSTM_only import LSTM_only
 import torch
 from tqdm.auto import tqdm
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.profilers import AdvancedProfiler
 
 if __name__ == '__main__':
-    dataset = GNNDataset()
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=10, pin_memory=False, persistent_workers=False) #takes care of shuffling
-    model = GCN_LSTM(13, debug=lambda x: None, GCN_sizes = [16, 32, 32, 16], LSTM_num_layers=4)
+    print(1)
+    train_dataset = GNNDataset(end_idx=300)
+    print(2)
+    train_dataloader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=7, pin_memory=True, persistent_workers=True) #takes care of shuffling
+    test_dataset = GNNDataset(begin_idx=301, end_idx=400)
+    test_dataloader = DataLoader(test_dataset, batch_size=1, num_workers=7, pin_memory=True, persistent_workers=True) #takes care of shuffling
+    model = GCN_LSTM(13, debug=lambda x: None, GCN_sizes = [16, 16], LSTM_num_layers=2, train_avg=train_dataset.avg_rets, test_avg=test_dataset.avg_rets)
+    #model = LSTM_only(13, debug=lambda x: None, LSTM_num_layers=4)
     wandb_logger = WandbLogger(project='PGM Project', log_model="all")
-    trainer = pl.Trainer(gpus=1, max_epochs=25, logger=wandb_logger)
+    profiler = None #AdvancedProfiler(dirpath=".", filename="perf_logs")
+    trainer = pl.Trainer(gpus=1, max_epochs=50, logger=wandb_logger, accumulate_grad_batches=20, auto_lr_find=True, gradient_clip_val=0.5, profiler=profiler)
+    #trainer.tune(model, train_dataloaders=train_dataloader)
     #trainer = pl.Trainer(max_epochs=1)
-    trainer.fit(model=model, train_dataloaders=dataloader)
+    trainer.fit(model=model, train_dataloaders=train_dataloader, val_dataloaders=test_dataloader)
 
 # Notes
 # Getting PyG to work:

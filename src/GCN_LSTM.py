@@ -55,7 +55,7 @@ class GCN_LSTM(pl.LightningModule):#(nn.Module):
         
         # For conv, we have batch*time batches, each with n_stocks nodesx1
         self.debug('b')
-        node_features  = node_features.view(batch, n_stocks, time, features).permute(2, 0, 1, 3).view(time*batch*n_stocks, self.LSTM_output_size)
+        node_features  = node_features.view(batch, n_stocks, time, features).permute(0, 2, 1, 3).view(batch*time*n_stocks, self.LSTM_output_size)
         #batch_vector   = torch.arange(time).repeat_interleave(n_stocks)
         new_edge_index_stock = self.change_edges(edge_index_stock, time, n_stocks)
         new_edge_index_supplies_to = self.change_edges(edge_index_supplies_to, time, n_stocks)
@@ -94,7 +94,7 @@ class GCN_LSTM(pl.LightningModule):#(nn.Module):
         return out.reshape(time, batch, n_stocks).permute(1, 2, 0)
     
     def configure_optimizers (self):
-        optimizer = optim.Adam(self.parameters(), lr=1e-3) 
+        optimizer = optim.Adam(self.parameters(), lr=1e-5) 
         return optimizer
     
     def training_step (self, train_batch, batch_idx):

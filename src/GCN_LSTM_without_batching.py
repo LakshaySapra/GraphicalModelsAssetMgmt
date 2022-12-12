@@ -4,13 +4,18 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch_geometric.nn import GCNConv
 import pytorch_lightning as pl
+from torchmetrics.functional import r2_score
 
 from typing import Union, List
 
 class GCN_LSTM(pl.LightningModule):#(nn.Module):
     def __init__(self, LSTM_input_size:int, LSTM_output_size:int=16, LSTM_num_layers:int=2, GCN_sizes:Union[None, List[int]]=None,
-                 Linear_Sizes:Union[None, List[int]]=None, dropout=0.1, debug=lambda x: print(x)) -> None:
+                 Linear_Sizes:Union[None, List[int]]=None, dropout=0.1, lr=5e-4, debug=lambda x: print(x),
+                 train_avg=None, test_avg=None) -> None:
         super().__init__()
+        self.lr = lr
+        self.train_avg=train_avg
+        self.test_avg=test_avg
         self.save_hyperparameters()
         
         if GCN_sizes is None:
@@ -27,7 +32,7 @@ class GCN_LSTM(pl.LightningModule):#(nn.Module):
         self.conv_stock   = nn.ModuleList([GCNConv(input, output, improved=True) for input, output in zip([self.LSTM_output_size]+self.GCN_sizes[:-1], self.GCN_sizes)])
         self.conv_supplies_to   = nn.ModuleList([GCNConv(input, output, improved=True) for input, output in zip([self.LSTM_output_size]+self.GCN_sizes[:-1], self.GCN_sizes)])
         self.conv_supplies_from   = nn.ModuleList([GCNConv(input, output, improved=True) for input, output in zip([self.LSTM_output_size]+self.GCN_sizes[:-1], self.GCN_sizes)])
-        self.linear = nn.Sequential(*([j for input, output in zip([self.GCN_sizes[-1]*3]+self.Linear_sizes[:-1], self.Linear_sizes) for j in [nn.Linear(input, output), nn.LeakyReLU()]][:-1]))
+        self.linear = nn.Sequential(*([j for input, output in zip([self.GCN_sizes[-1]*3+self.LSTM_output_size]+self.Linear_sizes[:-1], self.Linear_sizes) for j in [nn.Linear(input, output), nn.LeakyReLU()]][:-1]))
         self.debug = debug
 
     def change_edges(self, edge, time, n_nodes):
@@ -88,7 +93,7 @@ class GCN_LSTM(pl.LightningModule):#(nn.Module):
             #print('e', (torch.isnan(node_features_supplies_from.view(time,n_stocks,-1)).sum(dim=(0, 2)) > 0.5).sum())
         
         self.debug('f')
-        out = torch.cat([node_features_stock, node_features_supplies_to, node_features_supplies_from], 1)
+        out = torch.cat([node_features_stock, node_features_supplies_to, node_features_supplies_from, node_features], 1)
         
         self.debug('g')
         out = torch.squeeze(self.linear(out))
@@ -98,8 +103,9 @@ class GCN_LSTM(pl.LightningModule):#(nn.Module):
         return out.reshape(time, n_stocks).T
     
     def configure_optimizers (self):
-        optimizer = optim.Adam(self.parameters(), lr=1e-5) 
-        return optimizer
+        optimizer = optim.Adam(self.parameters(), lr=(self.lr or 1e-5))
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=2)
+        return {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "train_loss"}
     
     def training_step (self, train_batch, batch_idx):
         sector_edge_lst, c_edge_lst, s_edge_lst, cur_hist_ret_df, cur_weekly_ret_df, mask = train_batch
@@ -117,9 +123,31 @@ class GCN_LSTM(pl.LightningModule):#(nn.Module):
         time = predicted_rets.shape[1]
         predicted_rets = torch.masked_select(predicted_rets[:, (time//2):]   , mask)
         actual_rets    = torch.masked_select(cur_weekly_ret_df[:, (time//2):], mask)
-        loss = (predicted_rets - actual_rets).square().mean()
+        loss = (predicted_rets - actual_rets).square().mean().sqrt()
         self.log('train_loss', loss)
-        return loss
+        r2   = 1 - (predicted_rets - actual_rets).square().mean()/(self.train_avg - actual_rets).square().mean()
+        self.log('train_r2', r2)
+        final = loss + (0 if torch.isnan(r2).item() else (1-r2))
+        return final
     
     def validation_step(self, val_batch, batch_idx): 
-        pass
+        sector_edge_lst, c_edge_lst, s_edge_lst, cur_hist_ret_df, cur_weekly_ret_df, mask = val_batch
+        
+        # Single element, remove batch argument
+        sector_edge_lst = sector_edge_lst.squeeze(dim=0)
+        c_edge_lst = c_edge_lst.squeeze(dim=0)
+        s_edge_lst = s_edge_lst.squeeze(dim=0)
+        cur_hist_ret_df = torch.nan_to_num(cur_hist_ret_df).squeeze(dim=0)
+        cur_weekly_ret_df = cur_weekly_ret_df.squeeze(dim=0)
+        mask = mask.squeeze(dim=0)[:, None] > 0.5
+        
+        #cur_hist_ret_df = torch.nan_to_num(cur_hist_ret_df, nan=-float('inf'))
+        predicted_rets = self.forward(cur_hist_ret_df, sector_edge_lst, s_edge_lst, c_edge_lst)
+        time = predicted_rets.shape[1]
+        predicted_rets = torch.masked_select(predicted_rets[:, (time//2):]   , mask)
+        actual_rets    = torch.masked_select(cur_weekly_ret_df[:, (time//2):], mask)
+        loss = (predicted_rets - actual_rets).square().mean().sqrt()
+        self.log('val_loss', loss)
+        r2   = 1 - (predicted_rets - actual_rets).square().mean()/(self.test_avg - actual_rets).square().mean()
+        self.log('val_r2', r2)
+        return loss
