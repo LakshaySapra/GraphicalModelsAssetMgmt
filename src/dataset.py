@@ -122,6 +122,7 @@ class GNNDataset(Dataset):
         self.avg_rets = self.weekly_ret_df.to_numpy().reshape(-1)
         self.avg_rets = self.avg_rets[~np.isnan(self.avg_rets)].mean()
         self.get_sp = get_sp
+        self.sp = pd.read_pickle(data_path+'sp.pkl')
     
     def __len__(self):
         # return len(self.date_lst)-1-self.T
@@ -144,7 +145,7 @@ class GNNDataset(Dataset):
     def __getitem__(self,idx,T=52):
         idx += self.begin_idx
         cur_date = self.date_lst[idx]
-        next_date = self.date_lst[idx+1]
+        last_date = self.date_lst[idx+T-1]
         cur_universe = get_gvkey_universe(self.universe,cur_date)
         cur_permno_universe = get_permno_universe(self.permno_universe,cur_date)
 
@@ -191,10 +192,18 @@ class GNNDataset(Dataset):
         assert(len(np.intersect1d(np.where(~mask)[0], c_edge_lst)) == 0)
         assert(len(np.intersect1d(np.where(~mask)[0], s_edge_lst)) == 0)
         
-
-        return torch.Tensor(sector_edge_lst.T).long(),\
+        if not self.get_sp:
+            return torch.Tensor(sector_edge_lst.T).long(),\
                torch.Tensor(c_edge_lst.T).long(),\
                torch.Tensor(s_edge_lst.T).long(),\
                torch.Tensor(cur_hist_ret_df),\
                torch.Tensor(cur_weekly_ret_df),\
                torch.Tensor(mask)
+        else:
+            return torch.Tensor(sector_edge_lst.T).long(),\
+               torch.Tensor(c_edge_lst.T).long(),\
+               torch.Tensor(s_edge_lst.T).long(),\
+               torch.Tensor(cur_hist_ret_df),\
+               torch.Tensor(cur_weekly_ret_df),\
+               torch.Tensor(mask),\
+               self.sp[last_date]
