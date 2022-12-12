@@ -9,9 +9,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.profilers import AdvancedProfiler
 
 if __name__ == '__main__':
-    print(1)
     train_dataset = GNNDataset(end_idx=300)
-    print(2)
     train_dataloader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=7, pin_memory=True, persistent_workers=True) #takes care of shuffling
     test_dataset = GNNDataset(begin_idx=301, end_idx=400)
     test_dataloader = DataLoader(test_dataset, batch_size=1, num_workers=7, pin_memory=True, persistent_workers=True) #takes care of shuffling
