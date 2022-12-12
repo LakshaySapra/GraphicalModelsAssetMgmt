@@ -131,17 +131,18 @@ class GCN_LSTM(pl.LightningModule):#(nn.Module):
         return final
     
     def validation_step(self, val_batch, batch_idx): 
-        sector_edge_lst, c_edge_lst, s_edge_lst, cur_hist_ret_df, _, mask = val_batch
+        sector_edge_lst, c_edge_lst, s_edge_lst, cur_hist_ret_df, cur_weekly_ret_df, mask, _ = val_batch
         
         # Single element, remove batch argument
         sector_edge_lst = sector_edge_lst.squeeze(dim=0)
         c_edge_lst = c_edge_lst.squeeze(dim=0)
         s_edge_lst = s_edge_lst.squeeze(dim=0)
         cur_hist_ret_df = torch.nan_to_num(cur_hist_ret_df).squeeze(dim=0)
+        cur_weekly_ret_df = cur_weekly_ret_df.squeeze(dim=0)
         mask = mask.squeeze(dim=0)[:, None] > 0.5
         
         #cur_hist_ret_df = torch.nan_to_num(cur_hist_ret_df, nan=-float('inf'))
         predicted_rets = self.forward(cur_hist_ret_df, sector_edge_lst, s_edge_lst, c_edge_lst)
-        time = predicted_rets.shape[1]
-        predicted_rets = torch.masked_select(predicted_rets[:, (time//2):]   , mask)
-        return predicted_rets
+        predicted_rets = torch.masked_select(predicted_rets[:, -1]   , mask).view(-1)
+        actual_rets    = torch.masked_select(cur_weekly_ret_df[:, -1], mask).view(-1)
+        return predicted_rets, actual_rets

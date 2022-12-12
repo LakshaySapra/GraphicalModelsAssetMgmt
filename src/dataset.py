@@ -122,7 +122,7 @@ class GNNDataset(Dataset):
         self.avg_rets = self.weekly_ret_df.to_numpy().reshape(-1)
         self.avg_rets = self.avg_rets[~np.isnan(self.avg_rets)].mean()
         self.get_sp = get_sp
-        self.sp = pd.read_pickle(data_path+'sp.pkl')
+        self.sp = pd.read_pickle(data_path+'weekly_sp_returns.pkl')
     
     def __len__(self):
         # return len(self.date_lst)-1-self.T
@@ -206,4 +206,6 @@ class GNNDataset(Dataset):
                torch.Tensor(cur_hist_ret_df),\
                torch.Tensor(cur_weekly_ret_df),\
                torch.Tensor(mask),\
-               self.sp[last_date]
+               idx+T
+               #self.sp.loc[last_date].sprtrn,\
+               #last_date

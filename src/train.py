@@ -7,6 +7,10 @@ from tqdm.auto import tqdm
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.profilers import AdvancedProfiler
+import pandas as pd
+import matplotlib.pyplot as plt
+
+dropna = lambda x: x[~x.isnan()]
 
 if __name__ == '__main__':
     train_dataset = GNNDataset(end_idx=300)
@@ -20,14 +24,23 @@ if __name__ == '__main__':
     trainer = pl.Trainer(gpus=1, max_epochs=1, logger=wandb_logger, accumulate_grad_batches=20, auto_lr_find=True, gradient_clip_val=0.5, profiler=profiler)
     #trainer.tune(model, train_dataloaders=train_dataloader)
     #trainer = pl.Trainer(max_epochs=1)
-    trainer.fit(model=model, train_dataloaders=train_dataloader, val_dataloaders=test_dataloader)
-    final_dataset = GNNDataset()
-    train_dataloader = DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=7, pin_memory=True, persistent_workers=True)
-    for i in train_dataloader:
-        predicted_rets = model.validation_step(i, None)[:, -1]
+    trainer.fit(model=model, train_dataloaders=train_dataloader)
+    final_dataset = GNNDataset(get_sp=True)
+    final_dataloader = DataLoader(final_dataset, batch_size=1, shuffle=False, num_workers=7, pin_memory=True, persistent_workers=True)
+    cumulative = {'date': [], 'returns':[]}
+    for i in final_dataloader:
+        predicted_rets, actual_rets = model.validation_step(i, None)
+        date = final_dataset.date_lst[i[-1]]
         long_threshold_supliers = torch.quantile(predicted_rets, q=0.8)
         #short_threshold_supliers = torch.quantile(predicted_rets, q=0.8)
-        long_threshold_data = i[4][:, -1] 
+        long_threshold_data = (dropna(actual_rets[predicted_rets >= long_threshold_supliers]) - final_dataset.sp.loc[date].sprtrn).mean().detach().item()
+        cumulative['date'].append(date)
+        cumulative['returns'].append(long_threshold_data)
+    cumulative = pd.DataFrame(cumulative).set_index('date')
+    cumulative.to_csv('../results/final_returns.csv')
+    print(cumulative)
+    (cumulative+1).cumprod().plot()
+    plt.savefig('../results/cumulative_plot.png')
 
 # Notes
 # Getting PyG to work:
